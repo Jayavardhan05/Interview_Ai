@@ -8,6 +8,7 @@ const Home = () => {
     const { loading, generateReport,reports } = useInterview()
     const [ jobDescription, setJobDescription ] = useState("")
     const [ selfDescription, setSelfDescription ] = useState("")
+    const [ selectedResumeName, setSelectedResumeName ] = useState("")
     const resumeInputRef = useRef()
 
     const navigate = useNavigate()
@@ -15,6 +16,11 @@ const Home = () => {
     const handleGenerateReport = async () => {
         const resumeFile = resumeInputRef.current.files[ 0 ]
         const data = await generateReport({ jobDescription, selfDescription, resumeFile })
+
+        if (!data?._id) {
+            return
+        }
+
         navigate(`/interview/${data._id}`)
     }
 
@@ -81,7 +87,18 @@ const Home = () => {
                                 </span>
                                 <p className='dropzone__title'>Click to upload or drag &amp; drop</p>
                                 <p className='dropzone__subtitle'>PDF or DOCX (Max 5MB)</p>
-                                <input ref={resumeInputRef} hidden type='file' id='resume' name='resume' accept='.pdf,.docx' />
+                                <input
+                                    ref={resumeInputRef}
+                                    hidden
+                                    type='file'
+                                    id='resume'
+                                    name='resume'
+                                    accept='.pdf,.docx'
+                                    onChange={(e) => {
+                                        setSelectedResumeName(e.target.files?.[0]?.name || "")
+                                    }}
+                                />
+                                {selectedResumeName && <p className='dropzone__selected'>{selectedResumeName}</p>}
                             </label>
                         </div>
 

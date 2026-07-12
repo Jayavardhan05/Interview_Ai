@@ -1,4 +1,5 @@
 const pdfParse = require("pdf-parse")
+const mammoth = require("mammoth")
 const { generateInterviewReport, generateResumePdf } = require("../services/ai.service")
 const interviewReportModel = require("../models/interviewReport.model")
 
@@ -10,27 +11,78 @@ const interviewReportModel = require("../models/interviewReport.model")
  */
 async function generateInterViewReportController(req, res) {
 
-    const resumeContent = await (new pdfParse.PDFParse(Uint8Array.from(req.file.buffer))).getText()
-    const { selfDescription, jobDescription } = req.body
+    const resumeFile = req.file
+    const { selfDescription, jobDescription } = req.body || {}
+    const cleanJobDescription = jobDescription?.trim() || ""
+    const cleanSelfDescription = selfDescription?.trim() || ""
 
-    const interViewReportByAi = await generateInterviewReport({
-        resume: resumeContent.text,
-        selfDescription,
-        jobDescription
-    })
+    if (!cleanJobDescription) {
+        return res.status(400).json({
+            message: "Job description is required."
+        })
+    }
 
-    const interviewReport = await interviewReportModel.create({
-        user: req.user.id,
-        resume: resumeContent.text,
-        selfDescription,
-        jobDescription,
-        ...interViewReportByAi
-    })
+    if (!resumeFile?.buffer && !cleanSelfDescription) {
+        return res.status(400).json({
+            message: "Either a resume PDF or self-description is required."
+        })
+    }
 
-    res.status(201).json({
-        message: "Interview report generated successfully.",
-        interviewReport
-    })
+    let resumeText = ""
+
+    if (resumeFile?.buffer) {
+        const fileName = (resumeFile.originalname || "").toLowerCase()
+        const mimeType = (resumeFile.mimetype || "").toLowerCase()
+        const isPdf = fileName.endsWith(".pdf") || mimeType.includes("pdf")
+        const isDocx = fileName.endsWith(".docx") || mimeType.includes("word") || mimeType.includes("officedocument")
+
+        if (!isPdf && !isDocx) {
+            return res.status(400).json({
+                message: "Resume upload must be a PDF or DOCX file."
+            })
+        }
+
+        try {
+            if (isPdf) {
+                const resumeContent = await (new pdfParse.PDFParse(Uint8Array.from(resumeFile.buffer))).getText()
+                resumeText = resumeContent?.text?.trim() || ""
+            } else {
+                const docxResult = await mammoth.extractRawText({ buffer: resumeFile.buffer })
+                resumeText = docxResult?.value?.trim() || ""
+            }
+        } catch (error) {
+            return res.status(400).json({
+                message: "Resume file could not be read. Please upload a valid PDF or DOCX file."
+            })
+        }
+    }
+
+    try {
+        const interViewReportByAi = await generateInterviewReport({
+            resume: resumeText,
+            selfDescription: cleanSelfDescription,
+            jobDescription: cleanJobDescription
+        })
+
+        const interviewReport = await interviewReportModel.create({
+            user: req.user.id,
+            resume: resumeText,
+            selfDescription: cleanSelfDescription,
+            jobDescription: cleanJobDescription,
+            title: interViewReportByAi?.title || cleanJobDescription.slice(0, 120),
+            ...interViewReportByAi
+        })
+
+        return res.status(201).json({
+            message: "Interview report generated successfully.",
+            interviewReport
+        })
+    } catch (error) {
+        return res.status(500).json({
+            message: "Failed to generate interview report.",
+            error: error.message
+        })
+    }
 
 }
 

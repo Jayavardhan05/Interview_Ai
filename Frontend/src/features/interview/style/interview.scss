@@ -29,6 +29,34 @@ $severity-low: #3fb950;
     align-items: stretch;
     padding: 1.5rem;
     box-sizing: border-box;
+    position: relative;
+}
+
+.interview-brand {
+    position: absolute;
+    top: 1rem;
+    right: 1.5rem;
+    z-index: 2;
+
+    &__button {
+        border: 1px solid rgba($accent, 0.4);
+        background: rgba($bg-card, 0.92);
+        color: $text-primary;
+        padding: 0.5rem 0.9rem;
+        border-radius: 999px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        cursor: pointer;
+        transition: background-color 0.15s, color 0.15s, border-color 0.15s, transform 0.15s;
+
+        &:hover {
+            background: rgba($accent, 0.12);
+            border-color: $accent;
+            color: $accent;
+            transform: translateY(-1px);
+        }
+    }
 }
 
 // ── 3-Column Layout ───────────────────────────────────────────────────────────
