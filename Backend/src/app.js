@@ -9,7 +9,7 @@ app.use(cookieParser())
 app.use(cors({
     origin: [
     "http://localhost:5173",              // Local development
-    "https://interview-ai-frontend.onrender.com" // Deployed frontend
+    "https://interview-ai-1-nkgd.onrender.com" // Deployed frontend
   ],
     credentials: true
 }))
