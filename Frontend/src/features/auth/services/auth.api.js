@@ -1,8 +1,7 @@
 import axios from "axios"
 
-
 const api = axios.create({
-    baseURL: "https://interview-ai-ga5y.onrender.com/",
+    baseURL: import.meta.env.VITE_API_BASE_URL || "https://interview-ai-ga5y.onrender.com",
     withCredentials: true
 })
 
@@ -16,9 +15,8 @@ export async function register({ username, email, password }) {
         return response.data
 
     } catch (err) {
-
-        console.log(err)
-
+        console.error(err)
+        throw err
     }
 
 }
@@ -34,7 +32,8 @@ export async function login({ email, password }) {
         return response.data
 
     } catch (err) {
-        console.log(err)
+        console.error(err)
+        throw err
     }
 
 }
@@ -47,7 +46,8 @@ export async function logout() {
         return response.data
 
     } catch (err) {
-
+        console.error(err)
+        throw err
     }
 }
 
@@ -60,7 +60,8 @@ export async function getMe() {
         return response.data
 
     } catch (err) {
-        console.log(err)
+        console.error(err)
+        throw err
     }
 
 }

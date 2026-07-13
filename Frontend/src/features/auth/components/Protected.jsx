@@ -3,7 +3,7 @@ import { Navigate } from "react-router";
 import React from 'react'
 
 const Protected = ({children}) => {
-    const { loading,user } = useAuth()
+    const { loading,user } = useAuth({ autoFetchUser: true })
 
 
     if(loading){

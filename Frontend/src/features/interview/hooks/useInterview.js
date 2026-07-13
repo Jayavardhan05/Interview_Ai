@@ -1,13 +1,16 @@
 import { getAllInterviewReports, generateInterviewReport, getInterviewReportById, generateResumePdf } from "../services/interview.api"
-import { useContext, useEffect } from "react"
+import { useCallback, useContext, useEffect } from "react"
 import { InterviewContext } from "../interview.context"
-import { useParams } from "react-router"
+import { useNavigate, useParams } from "react-router"
+
+const isUnauthorized = (error) => error?.response?.status === 401
 
 
 export const useInterview = () => {
 
     const context = useContext(InterviewContext)
     const { interviewId } = useParams()
+    const navigate = useNavigate()
 
     if (!context) {
         throw new Error("useInterview must be used within an InterviewProvider")
@@ -15,53 +18,76 @@ export const useInterview = () => {
 
     const { loading, setLoading, report, setReport, reports, setReports } = context
 
-    const generateReport = async ({ jobDescription, selfDescription, resumeFile }) => {
+    const handleUnauthorized = useCallback((error) => {
+        if (!isUnauthorized(error)) {
+            return false
+        }
+
+        setReport(null)
+        setReports([])
+        navigate("/login", { replace: true })
+        return true
+    }, [ navigate, setReport, setReports ])
+
+    const generateReport = useCallback(async ({ jobDescription, selfDescription, resumeFile }) => {
         setLoading(true)
         let response = null
         try {
             response = await generateInterviewReport({ jobDescription, selfDescription, resumeFile })
-            setReport(response.interviewReport)
-            return response.interviewReport
+            const interviewReport = response?.interviewReport || null
+            setReport(interviewReport)
+            return interviewReport
         } catch (error) {
             console.error(error)
+            if (handleUnauthorized(error)) {
+                return null
+            }
             const message = error?.response?.data?.message || error?.message || "Failed to generate interview report."
             alert(message)
             return null
         } finally {
             setLoading(false)
         }
-    }
+    }, [ handleUnauthorized, setLoading, setReport ])
 
-    const getReportById = async (interviewId) => {
+    const getReportById = useCallback(async (interviewId) => {
         setLoading(true)
         let response = null
         try {
             response = await getInterviewReportById(interviewId)
-            setReport(response.interviewReport)
+            const interviewReport = response?.interviewReport || null
+            setReport(interviewReport)
+            return interviewReport
         } catch (error) {
             console.log(error)
+            handleUnauthorized(error)
+            return null
         } finally {
             setLoading(false)
         }
-        return response.interviewReport
-    }
+    }, [ handleUnauthorized, setLoading, setReport ])
 
-    const getReports = async () => {
+    const getReports = useCallback(async () => {
         setLoading(true)
         let response = null
         try {
             response = await getAllInterviewReports()
-            setReports(response.interviewReports)
+            const interviewReports = response?.interviewReports || []
+            setReports(interviewReports)
+            return interviewReports
         } catch (error) {
             console.log(error)
+            if (handleUnauthorized(error)) {
+                return []
+            }
+            setReports([])
+            return []
         } finally {
             setLoading(false)
         }
+    }, [ handleUnauthorized, setLoading, setReports ])
 
-        return response.interviewReports
-    }
-
-    const getResumePdf = async (interviewReportId) => {
+    const getResumePdf = useCallback(async (interviewReportId) => {
         setLoading(true)
         let response = null
         try {
@@ -75,10 +101,11 @@ export const useInterview = () => {
         }
         catch (error) {
             console.log(error)
+            handleUnauthorized(error)
         } finally {
             setLoading(false)
         }
-    }
+    }, [ handleUnauthorized, setLoading ])
 
     useEffect(() => {
         if (interviewId) {
@@ -86,7 +113,7 @@ export const useInterview = () => {
         } else {
             getReports()
         }
-    }, [ interviewId ])
+    }, [ getReportById, getReports, interviewId ])
 
     return { loading, report, reports, generateReport, getReportById, getReports, getResumePdf }
 
